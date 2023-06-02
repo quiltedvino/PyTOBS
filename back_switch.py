@@ -1,6 +1,7 @@
 import os
 import platform
 import ctypes
+import subprocess
 from PIL import Image
 
 def get_fit_style(image_path, user_resolution):
@@ -34,28 +35,26 @@ def change_wallpaper(file_path, fit):
         }
         style = fit_styles.get(fit.lower(), 2)  # Default to 'stretch' if fit not found
         ctypes.windll.user32.SystemParametersInfoW(20, 0, file_path, style)
+
+
     elif system == "Darwin":
-        # macOS
-        fit_styles = {
-            'center': '0',
-            'fill': '3',
-            'fit': '5',
-            'stretch': '1',
-            'span': '2'
-        }
-        style = fit_styles.get(fit.lower(), '5')  # Default to 'fit' if fit not found
-        script = 'tell application "Finder" to set desktop picture to POSIX file "{}" as alias using {}'.format(file_path, style)
-        os.system('osascript -e "{}"'.format(script))
+        #Mac does not support fit styles.
+        script = 'tell application "System Events" to set picture of every desktop to "{}" as POSIX file'.format(file_path)
+        subprocess.run(['osascript', '-e', script])
+
     elif system == "Linux":
-        # Linux (requires feh)
         fit_styles = {
-            'center': '--bg-center',
-            'fill': '--bg-fill',
-            'fit': '--bg-scale',
-            'stretch': '--bg-max',
-            'span': '--bg-fill'
+            'center': 'centered',
+            'fill': 'centered',
+            'fit': 'scaled',
+            'stretch': 'stretched',
+            'span': 'scaled'
         }
-        style = fit_styles.get(fit.lower(), '--bg-fill')  # Default to 'fill' if fit not found
-        os.system('feh {} {}'.format(style, file_path))
+        style = fit_styles.get(fit.lower(), 'wallpaper')  # Default to 'wallpaper' if fit not found
+        
+        script = r'gsettings set org.gnome.desktop.background picture-uri "file:{}" '.format(file_path)
+        os.system(script)
+        script = r'gsettings set org.gnome.desktop.background picture-options "{}" '.format(style)
+        os.system(script)
     else:
         print("Unsupported operating system: {}".format(system))
